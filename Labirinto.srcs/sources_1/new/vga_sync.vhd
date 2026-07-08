@@ -6,8 +6,8 @@
 --   Pixel clock: 25 MHz (100 MHz / 4)
 --   Orizzontale: 640 visibili + 16 front + 96 sync + 48 back = 800 totali
 --   Verticale:   480 visibili + 10 front +  2 sync + 33 back = 525 totali
---
--- Polarita' dei sincronismi per 640x480@60: hsync e vsync ATTIVI BASSI
+--   
+-- Polarita dei sincronismi per 640x480@60: hsync e vsync ATTIVI BASSI
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
