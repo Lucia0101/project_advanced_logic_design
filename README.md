@@ -9,9 +9,7 @@
 <img src="labirinto.jpg" alt="Labyrinth Game on VGA" width="400" height="300">
 <br>
 
-<p>
-  <b>A custom RISC-V SoC and VGA Video Game on FPGA</b>
-</p>
+
 
 </div>
 
