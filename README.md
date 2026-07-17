@@ -25,7 +25,7 @@ The system highlights a strong Hardware/Software Co-Design approach:
 * **Hardware:** The physical inclination of the board is constantly monitored using the onboard ADXL362 3-axis accelerometer, managed by a custom SPI controller. A custom VGA controller handles the real-time rendering of the 640x480 resolution maze and the ball. Memory-mapped I/O is used to communicate with all peripherals, including a GPIO module for LEDs and a 7-segment display.
 * **Software:** A highly optimized C firmware runs directly on the RISC-V CPU, reading the accelerometer data to compute the game physics (including ball inertia and friction using bitwise shift operations) and resolving wall/hole collisions. 
 
-. A custom VGA controller handles the real-time rendering of the 640x480 resolution maze and the ball
+A custom VGA controller handles the real-time rendering of the 640x480 resolution maze and the ball
 . Memory-mapped I/O is used to communicate with all peripherals, including a GPIO module for LEDs and a 7-segment display
 .
 Software: A highly optimized C firmware runs directly on the RISC-V CPU, reading the accelerometer data to compute the game physics (including ball inertia and friction using bitwise shift operations) and resolving wall/hole collisions
