@@ -1,5 +1,12 @@
 -- data_memory.vhd
 -- Memoria dati (RAM) per processore RISC-V RV32I
+-- Dimensione: 1024 word da 32 bit = 4 KB
+--
+-- MODIFICA IMPORTANTE: lettura ASINCRONA (combinatoria)
+-- In una CPU single-cycle, LOAD deve fornire il dato nello STESSO ciclo,
+-- altrimenti istruzioni come "lw ra, 12(sp)" seguite subito da "ret"
+-- userebbero un valore non ancora aggiornato (latenza), causando salti
+-- a indirizzi sbagliati. La scrittura resta sincrona.
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -8,49 +15,36 @@ use IEEE.NUMERIC_STD.ALL;
 entity data_memory is
     Port (
         clk      : in  STD_LOGIC;
-
-        -- indirizzo: usiamo solo i bit [11:2] per indirizzare 1024 word
         addr     : in  STD_LOGIC_VECTOR(31 downto 0);
-
-        -- segnali per lettura e scrittura
-        wr_en    : in  STD_LOGIC;                       -- 1 = abilita scrittura (STORE)
-        rd_en    : in  STD_LOGIC;                       -- 1 = abilita lettura (LOAD)
-
-        -- dato da scrivere in memoria (proveniente da rs2)
+        wr_en    : in  STD_LOGIC;
+        rd_en    : in  STD_LOGIC;
         wr_data  : in  STD_LOGIC_VECTOR(31 downto 0);
-
-        -- dato letto dalla memoria
         rd_data  : out STD_LOGIC_VECTOR(31 downto 0)
     );
 end entity data_memory;
 
 architecture behavioral of data_memory is
 
-    -- array della memoria: 1024 word da 32 bit
-    -- a differenza della ROM, qui usiamo signal perche' i valori cambiano nel tempo
     type ram_array is array(0 to 1023) of STD_LOGIC_VECTOR(31 downto 0);
     signal ram : ram_array := (others => (others => '0'));
 
 begin
 
-    -- processo sincrono: gestisce sia scrittura che lettura
+    -- ============= SCRITTURA (sincrona) =============
+    -- La scrittura avviene sul fronte di salita del clock (STORE)
     process(clk)
     begin
         if rising_edge(clk) then
-
-            -- scrittura: avviene solo se wr_en e' attivo
-            -- ha priorita' sulla lettura nello stesso ciclo
             if wr_en = '1' then
                 ram(to_integer(unsigned(addr(11 downto 2)))) <= wr_data;
             end if;
-
-            -- lettura: avviene se rd_en e' attivo
-            -- come per la ROM, c'e' una latenza di 1 ciclo
-            if rd_en = '1' then
-                rd_data <= ram(to_integer(unsigned(addr(11 downto 2))));
-            end if;
-
         end if;
     end process;
+
+    -- ============= LETTURA (asincrona/combinatoria) =============
+    -- Il dato e' disponibile nello STESSO ciclo, senza latenza.
+    -- Fondamentale per la CPU single-cycle: LOAD deve completare in 1 ciclo.
+    rd_data <= ram(to_integer(unsigned(addr(11 downto 2)))) when rd_en = '1'
+               else (others => '0');
 
 end architecture behavioral;

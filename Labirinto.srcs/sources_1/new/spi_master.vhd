@@ -145,6 +145,6 @@ begin
     spi_cs_n <= cs_n_int;
     rx_data  <= shift_rx;
     
-    busy <= '0' when stato = IDLE else '1';
+    busy <= '0' when (stato = IDLE and start = '0') else '1';
     
 end architecture behavioral;
