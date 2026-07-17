@@ -17,7 +17,7 @@
 
 <br />
 
-This project was developed for the **Advanced Logic Design** course taught by Prof. Roberto Passerone. It implements a complete System-on-a-Chip (SoC) on a **Digilent Nexys 4 DDR FPGA** (Xilinx Artix-7). 
+This project was developed for the Advanced Logic Design course taught by Prof. Roberto Passerone from Unitn. It implements a complete System-on-a-Chip (SoC) on a Digilent Nexys 4 DDR FPGA (Xilinx Artix-7). 
 
 The core of the system is a custom-designed, single-cycle **RISC-V RV32I processor** written in VHDL from scratch. The processor serves as the brain for an interactive bare-metal video game: a "Labyrinth" where the user must guide a ball from a starting point to a finish line, carefully avoiding walls and holes. 
 
