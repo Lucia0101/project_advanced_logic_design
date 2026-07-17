@@ -1,4 +1,6 @@
 Labyrinth
+
+
 This project was developed for the Advanced Logic Design course taught by Prof. Roberto Passerone
 . It implements a complete System-on-a-Chip (SoC) on a Digilent Nexys 4 DDR FPGA (Xilinx Artix-7)
 .
