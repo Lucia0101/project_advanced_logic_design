@@ -1,7 +1,3 @@
--- gpio_tb.vhd
--- Testbench per il modulo GPIO
--- Verifica lettura switch/pulsanti e scrittura LED/display
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -10,7 +6,6 @@ entity gpio_tb is
 end entity gpio_tb;
 
 architecture sim of gpio_tb is
-
     signal clk      : STD_LOGIC := '0';
     signal rst      : STD_LOGIC := '1';
     signal addr     : STD_LOGIC_VECTOR(3 downto 0) := (others => '0');
@@ -23,9 +18,8 @@ architecture sim of gpio_tb is
     signal seg      : STD_LOGIC_VECTOR(6 downto 0);
     signal an       : STD_LOGIC_VECTOR(7 downto 0);
     signal dp       : STD_LOGIC;
-
     constant CLK_PERIOD : time := 10 ns;
-
+    
 begin
 
     DUT: entity work.gpio
@@ -53,25 +47,22 @@ begin
         rst <= '0';
         report "=== Reset rilasciato ===";
 
-        -- ===== TEST 1: lettura switch =====
-        switches <= X"A5A5";     -- imposta gli switch
-        addr     <= "0000";      -- registro switch (0x0)
+        switches <= X"A5A5"; 
+        addr     <= "0000";
         wait for CLK_PERIOD;
         assert rd_data = X"0000A5A5"
             report "ERRORE lettura switch" severity error;
         report "TEST 1 - Lettura switch (0xA5A5): OK";
 
-        -- ===== TEST 2: lettura pulsanti =====
-        buttons <= "10101";      -- imposta i pulsanti
-        addr    <= "0100";       -- registro pulsanti (0x4)
+        buttons <= "10101";
+        addr    <= "0100"; 
         wait for CLK_PERIOD;
         assert rd_data = X"00000015"
             report "ERRORE lettura pulsanti" severity error;
         report "TEST 2 - Lettura pulsanti (0x15): OK";
 
-        -- ===== TEST 3: scrittura LED =====
-        addr    <= "1000";       -- registro LED (0x8)
-        wr_data <= X"0000FFFF";  -- accendi tutti i LED
+        addr    <= "1000";    
+        wr_data <= X"0000FFFF";
         wr_en   <= '1';
         wait for CLK_PERIOD;
         wr_en   <= '0';
@@ -80,7 +71,6 @@ begin
             report "ERRORE scrittura LED" severity error;
         report "TEST 3 - Scrittura LED (0xFFFF): OK";
 
-        -- ===== TEST 4: scrittura parziale LED =====
         addr    <= "1000";
         wr_data <= X"00001234";
         wr_en   <= '1';
@@ -91,8 +81,7 @@ begin
             report "ERRORE scrittura LED parziale" severity error;
         report "TEST 4 - Scrittura LED (0x1234): OK";
 
-        -- ===== TEST 5: scrittura display =====
-        addr    <= "1100";       -- registro display (0xC)
+        addr    <= "1100";    
         wr_data <= X"DEADBEEF";
         wr_en   <= '1';
         wait for CLK_PERIOD;
@@ -105,5 +94,4 @@ begin
         wait;
 
     end process;
-
 end architecture sim;

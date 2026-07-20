@@ -1,6 +1,3 @@
--- datapath.vhd
--- Top-Level del Data Path per processore RISC-V RV32I
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -9,28 +6,21 @@ entity datapath is
     Port (
         clk           : in  STD_LOGIC;
         rst           : in  STD_LOGIC;
-
-        -- ===== Interfaccia Memoria Istruzioni =====
-        instr_in      : in  STD_LOGIC_VECTOR(31 downto 0);  -- istruzione letta
-        pc_addr       : out STD_LOGIC_VECTOR(31 downto 0);  -- indirizzo del PC
-
-        -- ===== Interfaccia Memoria Dati =====
-        mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);  -- indirizzo
-        mem_wr_data   : out STD_LOGIC_VECTOR(31 downto 0);  -- dato da scrivere
-        mem_rd_data   : in  STD_LOGIC_VECTOR(31 downto 0);  -- dato letto
-        mem_wr_en     : out STD_LOGIC;                      -- abilita scrittura
-        mem_rd_en     : out STD_LOGIC;                      -- abilita lettura
-
-        -- ===== Uscite di Debug (utili per il testbench) =====
-        debug_wb_data : out STD_LOGIC_VECTOR(31 downto 0);  -- dato scritto nel reg file
-        debug_rd_addr : out STD_LOGIC_VECTOR(4 downto 0);   -- registro destinazione
-        debug_reg_wr  : out STD_LOGIC                       -- abilitazione scrittura
+        instr_in      : in  STD_LOGIC_VECTOR(31 downto 0);  
+        pc_addr       : out STD_LOGIC_VECTOR(31 downto 0);
+        mem_addr      : out STD_LOGIC_VECTOR(31 downto 0);  
+        mem_wr_data   : out STD_LOGIC_VECTOR(31 downto 0);  
+        mem_rd_data   : in  STD_LOGIC_VECTOR(31 downto 0); 
+        mem_wr_en     : out STD_LOGIC;                      
+        mem_rd_en     : out STD_LOGIC;               
+        debug_wb_data : out STD_LOGIC_VECTOR(31 downto 0); 
+        debug_rd_addr : out STD_LOGIC_VECTOR(4 downto 0); 
+        debug_reg_wr  : out STD_LOGIC                     
     );
 end entity datapath;
 
 architecture behavioral of datapath is
 
-    -- ============= COSTANTI OPCODES RISC-V =============
     constant OP_RTYPE  : STD_LOGIC_VECTOR(6 downto 0) := "0110011";
     constant OP_ITYPE  : STD_LOGIC_VECTOR(6 downto 0) := "0010011";
     constant OP_LOAD   : STD_LOGIC_VECTOR(6 downto 0) := "0000011";
@@ -41,8 +31,6 @@ architecture behavioral of datapath is
     constant OP_LUI    : STD_LOGIC_VECTOR(6 downto 0) := "0110111";
     constant OP_AUIPC  : STD_LOGIC_VECTOR(6 downto 0) := "0010111";
 
-    -- ============= SEGNALI INTERNI (i "fili") =============
-    -- Decodifica istruzione
     signal opcode     : STD_LOGIC_VECTOR(6 downto 0);
     signal funct3     : STD_LOGIC_VECTOR(2 downto 0);
     signal funct7_5   : STD_LOGIC;
@@ -76,16 +64,14 @@ architecture behavioral of datapath is
     signal tipo_imm   : STD_LOGIC_VECTOR(2 downto 0);
     signal imm_out    : STD_LOGIC_VECTOR(31 downto 0);
 
-    -- ALU e ALU Control
+    -- ALU and ALU Control
     signal op_sel     : STD_LOGIC_VECTOR(3 downto 0);
     signal alu_a_in   : STD_LOGIC_VECTOR(31 downto 0);
     signal alu_b_in   : STD_LOGIC_VECTOR(31 downto 0);
     signal alu_res    : STD_LOGIC_VECTOR(31 downto 0);
-    signal alu_zero   : STD_LOGIC; -- Output inutilizzato della ALU
+    signal alu_zero   : STD_LOGIC; 
 
 begin
-
-    -- ============= DECODIFICA ISTRUZIONE (SLICING) =============
     opcode    <= instr_in(6 downto 0);
     opcode_5  <= instr_in(5);
     funct3    <= instr_in(14 downto 12);
@@ -93,8 +79,7 @@ begin
     rs1_addr  <= instr_in(19 downto 15);
     rs2_addr  <= instr_in(24 downto 20);
     rd_addr   <= instr_in(11 downto 7);
-
-    -- ============= GENERAZIONE TIPO IMM =============
+    
     with opcode select
         tipo_imm <= "000" when OP_ITYPE,
                     "000" when OP_LOAD,
@@ -106,20 +91,15 @@ begin
                     "100" when OP_JAL,
                     "000" when others;
 
-    -- ============= SEGNALI DI SUPPORTO =============
-    -- TODO: Collegare questo segnale alla futura Macchina a Stati (FSM)
-    -- Per ora lo teniamo a '1' per consentire il testing
     pc_load_sig <= '1';
-
-    -- ============= ISTANZE DEI MODULI =============
 
     PC_inst: entity work.program_counter
         port map (
             clk      => clk,
             rst      => rst,
             pc_load  => pc_load_sig,
-            pc_src   => branch_cond,  -- Il salto scatta se il Comparator dice '1'
-            target   => alu_res,      -- Indirizzo di salto calcolato fisicamente dalla ALU
+            pc_src   => branch_cond,  
+            target   => alu_res,      
             pc_out   => pc_out,
             pc_plus4 => pc_plus4
         );
@@ -172,7 +152,7 @@ begin
         port map (
             a         => alu_a_in,
             b         => alu_b_in,
-            seleziona => op_sel,
+            s         => op_sel,
             alu_res   => alu_res,
             zero      => alu_zero
         );
@@ -187,28 +167,16 @@ begin
             branch_cond => branch_cond
         );
 
-    -- ============= MUX E LOGICA CONCORRENTE =============
-
-    -- MUX ingresso A della ALU:
-    -- - Per JAL, BRANCH e AUIPC la ALU deve calcolare (PC + Immediato), quindi in A va il PC.
-    -- - Per LUI deve calcolare (0 + Immediato), quindi in A va 0.
-    -- - Altrimenti passa normalmente il valore del registro rs1 (es: R-Type, I-Type, JALR).
+    -- MUX 
     alu_a_in <= pc_out          when (opcode = OP_JAL or opcode = OP_BRANCH or opcode = OP_AUIPC) else
                 (others => '0') when opcode = OP_LUI else
                 valore_a;
-
-    -- MUX ingresso B della ALU:
-    -- - Se la Control Unit alza alu_src, OR se siamo in un BRANCH, in B va l'Immediato.
-    -- - Altrimenti passa il registro rs2.
     alu_b_in <= imm_out when (alu_src = '1' or opcode = OP_BRANCH) else 
                 valore_b;
-
-    -- MUX Write-Back (seleziona cosa scrivere nel Register File)
     wb_data <= mem_rd_data when mem_to_reg = '1' else
                pc_plus4    when jump = '1'       else
                alu_res;
 
-    -- ============= USCITE VERSO L'ESTERNO =============
     pc_addr       <= pc_out;
     mem_addr      <= alu_res;
     mem_wr_data   <= valore_b;

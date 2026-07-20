@@ -1,6 +1,3 @@
--- program_counter_tb.vhd
--- Testbench per il Program Counter RISC-V
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -33,13 +30,10 @@ begin
             pc_plus4 => pc_plus4
         );
 
-    -- generatore di clock
     clk <= not clk after CLK_PERIOD / 2;
 
     stimoli: process
     begin
-
-        -- TEST 1: reset, il PC deve partire da 0
         rst <= '1';
         wait for CLK_PERIOD;
         rst <= '0';
@@ -48,12 +42,8 @@ begin
             report "ERRORE: PC non e' 0 dopo reset" severity error;
         report "Reset: PC = 0x00000000 OK";
         
-        -- TEST 2: incremento normale PC + 4 per 4 cicli
         pc_src  <= '0';
-        pc_load <= '1';    -- <--- ABILITA IL PC
-        
-        -- TEST 3: incremento normale PC + 4 per 4 cicli
-        -- dopo ogni ciclo il PC deve avanzare di 4
+        pc_load <= '1';
         pc_src <= '0';
 
         wait for CLK_PERIOD;
@@ -80,8 +70,6 @@ begin
             report "ERRORE: PC non vale 16" severity error;
         report "PC + 4 => 0x00000010 OK";
 
-        -- TEST 4: salto a un indirizzo specifico
-        -- simuliamo un branch preso verso l'indirizzo 0x00000040
         target <= X"00000040";
         pc_src <= '1';
         wait for CLK_PERIOD;
@@ -90,7 +78,6 @@ begin
             report "ERRORE: salto a 0x40 fallito" severity error;
         report "Salto a 0x00000040 OK";
 
-        -- TEST 5: dopo il salto, riprendiamo con PC + 4 normalmente
         pc_src <= '0';
         wait for CLK_PERIOD;
         wait for 1 ns;
@@ -98,19 +85,15 @@ begin
             report "ERRORE: PC + 4 dopo salto fallito" severity error;
         report "PC + 4 dopo salto => 0x00000044 OK";
 
-        -- TEST 6: verifica pc_plus4
-        -- in questo momento pc_out = 0x44, quindi pc_plus4 deve essere 0x48
         assert pc_plus4 = X"00000048"
             report "ERRORE: pc_plus4 sbagliato" severity error;
         report "pc_plus4 = 0x00000048 OK";
 
-        -- TEST 7: Verifica del pc_load (congelamento del PC)
-        -- Simuliamo le fasi Decode/Execute dove pc_load = 0
         pc_load <= '0';
         pc_src  <= '0';
-        wait for CLK_PERIOD * 3; -- aspettiamo 3 colpi di clock
+        wait for CLK_PERIOD * 3; 
         wait for 1 ns;
-        assert pc_out = X"00000044" -- (o l'ultimo valore prima del test)
+        assert pc_out = X"00000044"
             report "ERRORE: Il PC e' andato avanti anche con pc_load = 0" severity error;
         report "Congelamento PC con pc_load = 0 OK";
 
@@ -118,5 +101,4 @@ begin
         wait;
 
     end process;
-
 end architecture sim;

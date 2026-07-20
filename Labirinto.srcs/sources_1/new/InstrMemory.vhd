@@ -1,10 +1,3 @@
--- InstrMemory.vhd - FIRMWARE DEL LABIRINTO v9 (il giro lungo)
--- Percorso unico: via -> slalom M11 -> colonna sx (B1) -> sotto M1 ->
--- fondo (B4, M10, B6) -> corridoio -> varco M4 -> tasca -> varco basso
--- M6 -> goal (spostato a destra, 570-630).
--- Trappola: varco alto di M6 -> zona cieca sopra M8 con B5.
--- Coordinate identiche a vga_ball.vhd.
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;

@@ -1,6 +1,3 @@
--- control_unit_tb.vhd
--- Testbench per la Control Unit (versione senza tipo_imm)
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
@@ -42,63 +39,55 @@ begin
     stimoli: process
     begin
 
-        -- TEST 1: R-TYPE
+        -- R-TYPE
         opcode <= "0110011";
         wait for 10 ns;
         assert reg_wr = '1'   report "R-TYPE: reg_wr"   severity error;
         assert alu_src = '0'  report "R-TYPE: alu_src"  severity error;
         assert alu_op = "10"  report "R-TYPE: alu_op"   severity error;
         report "R-TYPE: OK";
-
-        -- TEST 2: I-TYPE ALU
+        -- I-TYPE ALU
         opcode <= "0010011";
         wait for 10 ns;
         assert alu_src = '1'  report "I-ALU: alu_src"   severity error;
         assert alu_op = "10"  report "I-ALU: alu_op"    severity error;
         report "I-TYPE ALU: OK";
-
-        -- TEST 3: LOAD
+        -- LOAD
         opcode <= "0000011";
         wait for 10 ns;
         assert mem_rd = '1'      report "LOAD: mem_rd"     severity error;
         assert mem_to_reg = '1'  report "LOAD: mem_to_reg" severity error;
         report "LOAD: OK";
-
-        -- TEST 4: STORE
+        -- STORE
         opcode <= "0100011";
         wait for 10 ns;
         assert mem_wr = '1'  report "STORE: mem_wr"   severity error;
         assert reg_wr = '0'  report "STORE: reg_wr"   severity error;
         report "STORE: OK";
-
-        -- TEST 5: BRANCH
+        -- BRANCH
         opcode <= "1100011";
         wait for 10 ns;
         assert branch = '1'   report "BRANCH: branch"  severity error;
         assert alu_op = "01"  report "BRANCH: alu_op"  severity error;
         report "BRANCH: OK";
-
-        -- TEST 6: JAL
+        -- JAL
         opcode <= "1101111";
         wait for 10 ns;
         assert jump = '1'  report "JAL: jump"  severity error;
         report "JAL: OK";
-
-        -- TEST 7: JALR
+        -- JALR
         opcode <= "1100111";
         wait for 10 ns;
         assert jump = '1'     report "JALR: jump"     severity error;
         assert alu_src = '1'  report "JALR: alu_src"  severity error;
         report "JALR: OK";
-
-        -- TEST 8: LUI
+        -- LUI
         opcode <= "0110111";
         wait for 10 ns;
         assert reg_wr = '1'   report "LUI: reg_wr"   severity error;
         assert alu_op = "11"  report "LUI: alu_op"   severity error;
         report "LUI: OK";
-
-        -- TEST 9: AUIPC
+        -- AUIPC
         opcode <= "0010111";
         wait for 10 ns;
         assert reg_wr = '1'  report "AUIPC: reg_wr"  severity error;
@@ -108,5 +97,4 @@ begin
         wait;
 
     end process;
-
 end architecture sim;

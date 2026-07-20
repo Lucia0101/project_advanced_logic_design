@@ -1,13 +1,3 @@
--- data_memory.vhd
--- Memoria dati (RAM) per processore RISC-V RV32I
--- Dimensione: 1024 word da 32 bit = 4 KB
---
--- MODIFICA IMPORTANTE: lettura ASINCRONA (combinatoria)
--- In una CPU single-cycle, LOAD deve fornire il dato nello STESSO ciclo,
--- altrimenti istruzioni come "lw ra, 12(sp)" seguite subito da "ret"
--- userebbero un valore non ancora aggiornato (latenza), causando salti
--- a indirizzi sbagliati. La scrittura resta sincrona.
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -29,9 +19,6 @@ architecture behavioral of data_memory is
     signal ram : ram_array := (others => (others => '0'));
 
 begin
-
-    -- ============= SCRITTURA (sincrona) =============
-    -- La scrittura avviene sul fronte di salita del clock (STORE)
     process(clk)
     begin
         if rising_edge(clk) then
@@ -41,9 +28,6 @@ begin
         end if;
     end process;
 
-    -- ============= LETTURA (asincrona/combinatoria) =============
-    -- Il dato e' disponibile nello STESSO ciclo, senza latenza.
-    -- Fondamentale per la CPU single-cycle: LOAD deve completare in 1 ciclo.
     rd_data <= ram(to_integer(unsigned(addr(11 downto 2)))) when rd_en = '1'
                else (others => '0');
 

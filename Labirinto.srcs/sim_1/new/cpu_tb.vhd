@@ -1,10 +1,3 @@
--- cpu_tb.vhd
--- Testbench per la CPU completa (datapath + memorie)
--- Esegue il programma caricato nell'instr_memory e osserva i risultati
---
--- Versione con stampa in ESADECIMALE corretto di PC e istruzione
--- (tramite una funzione di conversione dedicata).
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -25,15 +18,12 @@ architecture sim of cpu_tb is
 
     constant CLK_PERIOD : time := 10 ns;
 
-    -- ============= FUNZIONE DI CONVERSIONE IN ESADECIMALE =============
-    -- converte un vettore a 32 bit in una stringa esadecimale a 8 cifre
     function to_hex(v : STD_LOGIC_VECTOR(31 downto 0)) return string is
         constant cifre : string(1 to 16) := "0123456789ABCDEF";
         variable risultato : string(1 to 8);
         variable nibble : integer;
     begin
         for i in 0 to 7 loop
-            -- estrae 4 bit alla volta, partendo dai piu' significativi
             nibble := to_integer(unsigned(v(31 - i*4 downto 28 - i*4)));
             risultato(i+1) := cifre(nibble + 1);
         end loop;
@@ -41,8 +31,6 @@ architecture sim of cpu_tb is
     end function;
 
 begin
-
-    -- istanza della CPU completa
     DUT: entity work.cpu
         port map (
             clk           => clk,
@@ -54,22 +42,16 @@ begin
             debug_reg_wr  => debug_reg_wr
         );
 
-    -- generatore di clock
     clk <= not clk after CLK_PERIOD / 2;
 
-    -- processo di osservazione
     stimoli: process
     begin
 
-        -- reset iniziale: tieni la CPU in reset per 2 cicli
         rst <= '1';
         wait for CLK_PERIOD * 2;
         rst <= '0';
         report "=== Reset rilasciato, inizio esecuzione ===";
 
-        -- osserva l'esecuzione per 10 cicli
-        -- ricorda: con la BRAM c'e' un ciclo di latenza,
-        -- quindi le scritture nel reg file partono dal 2 ciclo
         for i in 1 to 10 loop
             wait for CLK_PERIOD;
             if debug_reg_wr = '1' then
@@ -89,5 +71,4 @@ begin
         wait;
 
     end process;
-
 end architecture sim;

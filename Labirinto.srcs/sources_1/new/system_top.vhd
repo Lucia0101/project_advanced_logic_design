@@ -1,21 +1,3 @@
--- system_top.vhd
--- Top-level del sistema: processore RISC-V + GPIO + SPI + VGA
--- collegati tramite un bus I/O memory-mapped.
---
--- VERSIONE PER HARDWARE con CLOCK CPU DIVISO e CHIP SELECT MANUALE:
--- Il chip select dell'accelerometro e' controllato dal firmware tramite
--- il registro SPI_CS (offset 0xC), per mantenerlo basso durante l'intera
--- transazione a 3 byte come richiesto dall'ADXL362.
---
--- Il processore single-cycle ha un percorso critico (~15.4 ns) troppo lungo
--- per i 100 MHz della scheda. La CPU viene quindi alimentata con un clock
--- diviso a 25 MHz (periodo 40 ns), mentre il sottosistema VGA continua a
--- ricevere i 100 MHz da cui deriva internamente il pixel clock.
---
--- MAPPA DI MEMORIA:
---   0x00000000 : RAM dati   |  0x10000000 : GPIO
---   0x20000000 : SPI        |  0x30000000 : VGA
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -24,24 +6,16 @@ entity system_top is
     Port (
         clk       : in  STD_LOGIC;
         rst       : in  STD_LOGIC;
-
-        -- ===== ingressi fisici (GPIO) =====
         switches  : in  STD_LOGIC_VECTOR(15 downto 0);
         buttons   : in  STD_LOGIC_VECTOR(4 downto 0);
-
-        -- ===== uscite fisiche (GPIO) =====
         leds      : out STD_LOGIC_VECTOR(15 downto 0);
         seg       : out STD_LOGIC_VECTOR(6 downto 0);
         an        : out STD_LOGIC_VECTOR(7 downto 0);
         dp        : out STD_LOGIC;
-
-        -- ===== fili SPI (accelerometro ADXL362) =====
         spi_sclk  : out STD_LOGIC;
         spi_mosi  : out STD_LOGIC;
         spi_miso  : in  STD_LOGIC;
         spi_cs_n  : out STD_LOGIC;
-
-        -- ===== uscite VGA (verso il monitor) =====
         vga_hsync : out STD_LOGIC;
         vga_vsync : out STD_LOGIC;
         vga_red   : out STD_LOGIC_VECTOR(3 downto 0);
@@ -51,62 +25,39 @@ entity system_top is
 end entity system_top;
 
 architecture structural of system_top is
-
-    -- ========== RESET ==========
     signal rst_int : STD_LOGIC;
-
-    -- ========== CLOCK DIVISO PER LA CPU (25 MHz) ==========
-    -- Contatore a 2 bit: cpu_clk = clk/4 = 25 MHz (periodo 40 ns).
-    -- Ampio margine per il percorso critico single-cycle (~15.4 ns).
     signal clk_cnt : unsigned(1 downto 0) := (others => '0');
     signal cpu_clk : STD_LOGIC := '0';
-
-    -- ============= SEGNALI CPU <-> MEMORIA ISTRUZIONI =============
     signal pc_addr     : STD_LOGIC_VECTOR(31 downto 0);
     signal instruction : STD_LOGIC_VECTOR(31 downto 0);
-
-    -- ============= SEGNALI CPU <-> BUS DATI =============
     signal mem_addr    : STD_LOGIC_VECTOR(31 downto 0);
     signal mem_wr_data : STD_LOGIC_VECTOR(31 downto 0);
     signal mem_rd_data : STD_LOGIC_VECTOR(31 downto 0);
     signal mem_wr_en   : STD_LOGIC;
     signal mem_rd_en   : STD_LOGIC;
-
     signal dbg_wb_data : STD_LOGIC_VECTOR(31 downto 0);
     signal dbg_rd_addr : STD_LOGIC_VECTOR(4 downto 0);
     signal dbg_reg_wr  : STD_LOGIC;
-
-    -- ============= SEGNALI DEL DECODER =============
     signal periph_sel  : STD_LOGIC_VECTOR(1 downto 0);
-
     signal ram_wr_en   : STD_LOGIC;
     signal ram_rd_en   : STD_LOGIC;
     signal gpio_wr_en  : STD_LOGIC;
     signal spi_wr_en   : STD_LOGIC;
     signal vga_wr_en   : STD_LOGIC;
-
     signal ram_rd_data  : STD_LOGIC_VECTOR(31 downto 0);
     signal gpio_rd_data : STD_LOGIC_VECTOR(31 downto 0);
     signal spi_rd_data  : STD_LOGIC_VECTOR(31 downto 0);
-
-    -- ============= SEGNALI SPI =============
     signal spi_start   : STD_LOGIC;
     signal spi_tx_data : STD_LOGIC_VECTOR(7 downto 0);
     signal spi_rx_data : STD_LOGIC_VECTOR(7 downto 0);
     signal spi_busy    : STD_LOGIC;
     signal spi_done    : STD_LOGIC;
-    -- chip select pilotato dal firmware (registro 0x2000000C)
-    -- default '1' (slave non selezionato)
     signal spi_cs_reg  : STD_LOGIC := '1';
-
-    -- ============= SEGNALI VGA =============
     signal pixel_x     : STD_LOGIC_VECTOR(9 downto 0);
     signal pixel_y     : STD_LOGIC_VECTOR(9 downto 0);
     signal video_on    : STD_LOGIC;
-
     signal ball_x_reg  : STD_LOGIC_VECTOR(9 downto 0) := (others => '0');
     signal ball_y_reg  : STD_LOGIC_VECTOR(9 downto 0) := (others => '0');
-
     constant SEL_RAM  : STD_LOGIC_VECTOR(1 downto 0) := "00";
     constant SEL_GPIO : STD_LOGIC_VECTOR(1 downto 0) := "01";
     constant SEL_SPI  : STD_LOGIC_VECTOR(1 downto 0) := "10";
@@ -114,12 +65,7 @@ architecture structural of system_top is
 
 begin
 
-    -- Il pulsante CPU_RESETN della Nexys 4 e' attivo basso: invertiamo.
     rst_int <= not rst;
-
-    -- =====================================================
-    -- DIVISORE DI CLOCK PER LA CPU: 100 MHz -> 25 MHz
-    -- =====================================================
     process(clk, rst_int)
     begin
         if rst_int = '1' then
@@ -127,16 +73,12 @@ begin
             cpu_clk <= '0';
         elsif rising_edge(clk) then
             clk_cnt <= clk_cnt + 1;
-            -- cpu_clk cambia stato ogni 2 cicli -> periodo 4 cicli = 25 MHz
             if clk_cnt = "01" or clk_cnt = "11" then
                 cpu_clk <= not cpu_clk;
             end if;
         end if;
     end process;
-
-    -- =====================================================
-    -- ADDRESS DECODER
-    -- =====================================================
+    
     periph_sel <= mem_addr(29 downto 28);
 
     ram_wr_en  <= mem_wr_en when periph_sel = SEL_RAM  else '0';
@@ -150,9 +92,6 @@ begin
                        spi_rd_data  when SEL_SPI,
                        ram_rd_data  when others;
 
-    -- =====================================================
-    -- LOGICA SPI
-    -- =====================================================
     spi_start   <= '1' when (spi_wr_en = '1' and mem_addr(3 downto 0) = "0000")
                    else '0';
     spi_tx_data <= mem_wr_data(7 downto 0);
@@ -162,10 +101,6 @@ begin
                        (31 downto 8 => '0') & spi_rx_data    when "1000",
                        (others => '0')                       when others;
 
-    -- Registro CHIP SELECT manuale (offset 0xC): il firmware scrive
-    -- 0 per iniziare una transazione (CS basso), 1 per terminarla.
-    -- Necessario perche' l'ADXL362 richiede CS basso per tutti i byte
-    -- di una transazione (comando + indirizzo + dato).
     process(cpu_clk, rst_int)
     begin
         if rst_int = '1' then
@@ -177,12 +112,8 @@ begin
         end if;
     end process;
 
-    -- il chip select verso l'accelerometro e' pilotato dal registro
     spi_cs_n <= spi_cs_reg;
 
-    -- =====================================================
-    -- REGISTRI VGA (posizione pallina, scritti dalla CPU su cpu_clk)
-    -- =====================================================
     process(cpu_clk, rst_int)
     begin
         if rst_int = '1' then
@@ -201,12 +132,6 @@ begin
             end if;
         end if;
     end process;
-
-    -- =====================================================
-    -- ISTANZE
-    -- =====================================================
-    -- NOTA: CPU, memorie, GPIO e SPI girano sul clock diviso (cpu_clk).
-    -- Il sottosistema VGA riceve i 100 MHz originali.
 
     IMEM_inst: entity work.instr_memory
         port map (
@@ -269,10 +194,9 @@ begin
             spi_sclk => spi_sclk,
             spi_mosi => spi_mosi,
             spi_miso => spi_miso,
-            spi_cs_n => open      -- CS ora pilotato dal registro spi_cs_reg
+            spi_cs_n => open 
         );
 
-    -- ===== SOTTOSISTEMA VGA (resta a 100 MHz) =====
     VGASYNC_inst: entity work.vga_sync
         port map (
             clk      => clk,

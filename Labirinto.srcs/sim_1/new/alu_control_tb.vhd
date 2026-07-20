@@ -1,6 +1,3 @@
--- alu_control_tb.vhd
--- Testbench per ALU Control RISC-V
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
@@ -29,7 +26,6 @@ begin
     stimoli: process
     begin
 
-        -- TEST 1: alu_op = "00" -> sempre ADD (LOAD/STORE)
         alu_op   <= "00";
         funct3   <= "000";
         funct7_5 <= '0';
@@ -38,7 +34,6 @@ begin
             report "ERRORE: LOAD/STORE non da ADD" severity error;
         report "alu_op=00 (LOAD/STORE) -> ADD: OK";
 
-        -- TEST 2: alu_op = "01" -> sempre SUB (BRANCH)
         alu_op   <= "01";
         funct3   <= "000";
         funct7_5 <= '0';
@@ -47,25 +42,22 @@ begin
             report "ERRORE: BRANCH non da SUB" severity error;
         report "alu_op=01 (BRANCH) -> SUB: OK";
 
-        -- TEST 3: R-type ADD (funct3=000, funct7_5=0)
         alu_op   <= "10";
         funct3   <= "000";
         funct7_5 <= '0';
-        opcode_5 <= '1';    -- <--- Indica formato R-Type
+        opcode_5 <= '1';  
         wait for 10 ns;
         assert op_sel = "0000" report "ERRORE: ADD sbagliato" severity error;
         report "R-type ADD: OK";
 
-        -- TEST 4: R-type SUB (funct3=000, funct7_5=1)
         alu_op   <= "10";
         funct3   <= "000";
         funct7_5 <= '1';
-        opcode_5 <= '1';    -- <--- Indica formato R-Type (permette la sottrazione)
+        opcode_5 <= '1'; 
         wait for 10 ns;
         assert op_sel = "0001" report "ERRORE: SUB sbagliato" severity error;
         report "R-type SUB: OK";
 
-        -- TEST 5: AND (funct3=111)
         alu_op   <= "10";
         funct3   <= "111";
         funct7_5 <= '0';
@@ -74,7 +66,6 @@ begin
             report "ERRORE: AND sbagliato" severity error;
         report "AND: OK";
 
-        -- TEST 6: OR (funct3=110)
         alu_op   <= "10";
         funct3   <= "110";
         funct7_5 <= '0';
@@ -83,7 +74,6 @@ begin
             report "ERRORE: OR sbagliato" severity error;
         report "OR: OK";
 
-        -- TEST 7: XOR (funct3=100)
         alu_op   <= "10";
         funct3   <= "100";
         funct7_5 <= '0';
@@ -92,7 +82,6 @@ begin
             report "ERRORE: XOR sbagliato" severity error;
         report "XOR: OK";
 
-        -- TEST 8: SLL (funct3=001)
         alu_op   <= "10";
         funct3   <= "001";
         funct7_5 <= '0';
@@ -101,7 +90,6 @@ begin
             report "ERRORE: SLL sbagliato" severity error;
         report "SLL: OK";
 
-        -- TEST 9: SRL (funct3=101, funct7_5=0)
         alu_op   <= "10";
         funct3   <= "101";
         funct7_5 <= '0';
@@ -110,7 +98,6 @@ begin
             report "ERRORE: SRL sbagliato" severity error;
         report "SRL: OK";
 
-        -- TEST 10: SRA (funct3=101, funct7_5=1)
         alu_op   <= "10";
         funct3   <= "101";
         funct7_5 <= '1';
@@ -119,7 +106,6 @@ begin
             report "ERRORE: SRA sbagliato" severity error;
         report "SRA: OK";
 
-        -- TEST 11: SLT (funct3=010)
         alu_op   <= "10";
         funct3   <= "010";
         funct7_5 <= '0';
@@ -128,7 +114,6 @@ begin
             report "ERRORE: SLT sbagliato" severity error;
         report "SLT: OK";
 
-        -- TEST 12: SLTU (funct3=011)
         alu_op   <= "10";
         funct3   <= "011";
         funct7_5 <= '0';
@@ -137,7 +122,6 @@ begin
             report "ERRORE: SLTU sbagliato" severity error;
         report "SLTU: OK";
 
-        -- TEST 13: LUI (alu_op="11") -> ADD
         alu_op   <= "11";
         funct3   <= "000";
         funct7_5 <= '0';
@@ -146,13 +130,12 @@ begin
             report "ERRORE: LUI sbagliato" severity error;
         report "LUI -> ADD: OK";
         
-        --TEST 14
         alu_op   <= "10";
         funct3   <= "000";
-        funct7_5 <= '1';    -- Corrisponde a un immediato negativo (es. -1)
-        opcode_5 <= '0';    -- <--- Indica formato I-Type (ADDI)
+        funct7_5 <= '1';    -- Negative (ex -1)
+        opcode_5 <= '0';  
         wait for 10 ns;
-        assert op_sel = "0000"  -- Deve restituire ADD, non SUB!
+        assert op_sel = "0000"
             report "ERRORE CRITICO: ADDI ha generato un SUB!" severity error;
         report "I-Type ADDI con immediato negativo (Bug fix): OK";
         
@@ -160,5 +143,4 @@ begin
         wait;
 
     end process;
-
 end architecture sim;
